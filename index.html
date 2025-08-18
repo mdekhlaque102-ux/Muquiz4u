@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urdu Quiz App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Nastaliq Urdu', serif;
+        }
+        .correct {
+            background-color: #22c55e !important; /* Tailwind green-500 */
+            color: white !important;
+            border-color: #16a34a !important; /* Tailwind green-600 */
+        }
+        .incorrect {
+            background-color: #ef4444 !important; /* Tailwind red-500 */
+            color: white !important;
+            border-color: #dc2626 !important; /* Tailwind red-600 */
+        }
+        .disabled {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div id="quiz-container" class="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 transition-all duration-500">
+        
+        <div id="quiz-header" class="mb-6 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-600 dark:text-indigo-400">ادبی کوئز</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">مرزا فرحت اللہ بیگ</p>
+        </div>
+
+        <div id="question-area">
+            <div class="flex justify-between items-center mb-4">
+                <div id="question-counter" class="text-sm font-semibold text-gray-500 dark:text-gray-400"></div>
+                <div id="score" class="text-sm font-semibold text-gray-500 dark:text-gray-400"></div>
+            </div>
+            <p id="question-text" class="text-xl md:text-2xl font-semibold mb-6 min-h-[100px] text-right"></p>
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                </div>
+        </div>
+
+        <div id="result-area" class="hidden text-center">
+            <h2 class="text-2xl md:text-3xl font-bold mb-4">کوئز مکمل ہوا!</h2>
+            <p class="text-lg mb-2">آپ کا حتمی اسکور:</p>
+            <p id="final-score" class="text-5xl font-bold text-indigo-600 dark:text-indigo-400 mb-6"></p>
+            <button id="restart-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-300 text-lg font-bold">دوبارہ شروع کریں</button>
+        </div>
+
+        <div class="mt-8 flex justify-end">
+            <button id="next-btn" class="bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-300 transition-colors duration-300 text-lg font-bold hidden">اگلا سوال</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Quiz Data ---
+        // Extracted from the provided PDF document.
+        const quizData = [
+            {
+                question: "نذیر احمد کی کہانی کچھ میری کچھ ان کی زبانی کی صنف (genre) کیا ہے؟",
+                options: ["مضمون", "افسانہ", "ناول", "خاکہ"],
+                answer: "خاکہ"
+            },
+            {
+                question: "نذیر احمد کی کہانی کچھ میری کچھ ان کی زبانی' کے مصنف (author) کا نام کیا ہے؟",
+                options: ["خواجہ حسن نظامی", "سید سلیمان ندوی", "مرزا فرحت الله بیگ", "وزیر آغا"],
+                answer: "مرزا فرحت الله بیگ"
+            },
+            {
+                question: "اردو ادب میں پہلا خاکہ نگار کس کو مانا جاتا ہے؟",
+                options: ["ڈپٹی نذیر احمد", "خواجہ حسن نظامی", "سید سلیمان ندوی", "مرزا فرحت الله بیگ"],
+                answer: "مرزا فرحت الله بیگ"
+            },
+            {
+                question: "خاکہ نگاری سے کیا مراد ہے؟",
+                options: ["کسی شخصیت کی خیالی کہانی", "کسی جگہ کی تصویری پیشکش", "کسی شخصیت کی تحریری تصویر کشی", "کسی واقعہ کی تفصیل"],
+                answer: "کسی شخصیت کی تحریری تصویر کشی"
+            },
+            {
+                question: "مرزا فرحت اللہ بیگ نے اپنے کس استاد کے بارے میں خاکہ لکھا؟",
+                options: ["مولوی قمر الدین", "ڈپٹی نذیر احمد", "سید ولی الله", "مرزا بشمت الله بیگ"],
+                answer: "ڈپٹی نذیر احمد"
+            },
+            {
+                question: "مرزا فرحت اللہ بیگ کی پیدائش ان کے اپنے بیان کے مطابق کس سال ہوئی؟",
+                options: ["1883", "1885", "1886", "1887"],
+                answer: "1885"
+            },
+            {
+                question: "مرزا فرحت اللہ بیگ کی جائے پیدائش کیا تھی؟",
+                options: ["لکھنؤ", "حیدرآباد", "الہ آباد", "محلہ چوریوالان دہلی"],
+                answer: "محلہ چوریوالان دہلی"
+            },
+            {
+                question: "مرزا فرحت اللہ بیگ کے والد کا نام کیا تھا؟",
+                options: ["مرزا عبدالله بیگ", "سید ولی الله", "مرزا بشمت الله بیگ", "مرزا افضل بیگ"],
+                answer: "مرزا بشمت الله بیگ"
+            },
+            {
+                question: "مرزا فرحت الله بیگ کی والدہ کا نام کیا تھا جن کا انتقال ان کی دس روز کی عمر میں ہوگیا تھا؟",
+                options: ["نسیمہ سلطانہ", "مشرف جہاں بیگم", "حمیدہ سلطانہ", "حسن جہاں بیگم"],
+                answer: "مشرف جہاں بیگم"
+            },
+            {
+                question: "مرزا فرحت الله بیگ کی پھوپھی (fufi) کا نام کیا تھا جنہوں نے ان کی پرورش کی؟",
+                options: ["مشرف جہاں بیگم", "نسیمہ سلطانہ", "حمیدہ سلطانہ", "حسن جہاں بیگم"],
+                answer: "حسن جہاں بیگم"
+            },
+            {
+                question: "مرزا فرحت الله بیگ نے 1903 میں کس کالج سے انٹر میڈیٹ کا امتحان پاس کیا؟",
+                options: ["سینٹ اسٹیفنز کالج", "بندو کالج", "گورنمنٹ ہائی اسکول کشمیری دروازه", "پنجاب یونیورسٹی"],
+                answer: "سینٹ اسٹیفنز کالج"
+            },
+            {
+                question: "مرزا فرحت اللہ بیگ 1906 میں ہائی کورٹ میں کس عہدے پر فائز ہوئے؟",
+                options: ["انسپیکٹنگ افسر", "مترجم (translator)", "جج", "وكيل"],
+                answer: "مترجم (translator)"
+            },
+            {
+                question: "مرزا فرحت اللہ بیگ کی پہلی اہلیہ کا نام کیا تھا؟",
+                options: ["حمیدہ سلطانہ", "حسن جہاں بیگم", "نسیمہ سلطانہ", "مشرف جہاں بیگم"],
+                answer: "حمیدہ سلطانہ"
+            },
+            {
+                question: "مرزا فرحت اللہ بیگ کا انتقال کس تاریخ کو ہوا؟",
+                options: ["27 اپریل 1947", "27 مئی 1947", "27 جون 1947", "27 جولائی 1947"],
+                answer: "27 اپریل 1947"
+            },
+            {
+                question: "مرزا فرحت الله بیگ کا انتقال کس بیماری کی وجہ سے ہوا؟",
+                options: ["بخار", "حادثہ", "عارضہ قلب (دل کا دورہ)", "بڑھاپا"],
+                answer: "عارضہ قلب (دل کا دورہ)"
+            },
+            {
+                question: "نذیر احمد کی کہانی کچھ میری کچھ ان کی زبانی نامی خاکہ پہلی مرتبہ کس سال شائع ہوا؟",
+                options: ["1908", "1910", "1922", "1927"],
+                answer: "1927"
+            },
+            {
+                question: "مرزا فرحت اللہ بیگ کے مضامین کا مجموعہ کس نام سے سات جلدوں میں شائع ہوا؟",
+                options: ["ديوان يقين", "میری داستان", "مضامین فرحت", "دیوان نذیر"],
+                answer: "مضامین فرحت"
+            },
+            {
+                question: "ڈپٹی نذیر احمد سے سبق پڑھتے وقت مرزا فرحت اللہ بیگ کس چیز میں غلطیاں کرتے تھے؟",
+                options: ["الفاظ کی ادائیگی میں", "اعراب (vowel marks) میں", "جملے بنانے میں", "معنی سمجھنے میں"],
+                answer: "اعراب (vowel marks) میں"
+            },
+            {
+                question: "ڈپٹی نذیر احمد سے سبق پڑھتے وقت میاں دانی (مرزا فرحت اللہ بیگ کے دوست) کی عام غلطی کیا تھی؟",
+                options: ["نثر کو نظم کی طرح پڑھنا", "شعر کو نثر کی طرح پڑھنا", "سبق یاد نہ کرنا", "سوالات نہ پوچھنا"],
+                answer: "شعر کو نثر کی طرح پڑھنا"
+            },
+            {
+                question: "جب مستر رضا ڈپٹی نذیر احمد کے پاس پڑھنے آئے اور ان کا بنیادی علم کمزور تھا، تو نذیر احمد نے ان سے کیا کہا؟",
+                options: ["انہیں مزید مشق کرنے کو کہا۔", "انہیں سبق کا وقت بڑھانے کو کہا۔", "انہیں کسی دوسرے استاد سے بنیادی سبق پڑھ کر آنے کو کہا۔", "انہیں اپنی غلطیاں لکھنے کو کہا۔"],
+                answer: "انہیں کسی دوسرے استاد سے بنیادی سبق پڑھ کر آنے کو کہا۔"
+            }
+        ];
+
+        // --- DOM Elements ---
+        const questionArea = document.getElementById('question-area');
+        const resultArea = document.getElementById('result-area');
+        const questionCounterEl = document.getElementById('question-counter');
+        const scoreEl = document.getElementById('score');
+        const questionTextEl = document.getElementById('question-text');
+        const optionsContainerEl = document.getElementById('options-container');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const finalScoreEl = document.getElementById('final-score');
+
+        // --- State Variables ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        // --- Functions ---
+
+        /**
+         * Shuffles the quiz data array to randomize question order.
+         */
+        function shuffleQuiz() {
+            for (let i = quizData.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [quizData[i], quizData[j]] = [quizData[j], quizData[i]];
+            }
+        }
+
+        /**
+         * Loads and displays the current question and its options.
+         */
+        function loadQuestion() {
+            // Clear previous options and styles
+            optionsContainerEl.innerHTML = '';
+            nextBtn.classList.add('hidden');
+            
+            if (currentQuestionIndex >= quizData.length) {
+                showResults();
+                return;
+            }
+
+            const currentQuestion = quizData[currentQuestionIndex];
+
+            // Update header info
+            questionCounterEl.textContent = `سوال ${currentQuestionIndex + 1} / ${quizData.length}`;
+            scoreEl.textContent = `اسکور: ${score}`;
+            
+            // Display question
+            questionTextEl.textContent = currentQuestion.question;
+
+            // Create and display option buttons
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('w-full', 'text-right', 'p-4', 'rounded-lg', 'border-2', 'border-gray-300', 'dark:border-gray-600', 'hover:bg-gray-100', 'dark:hover:bg-gray-700', 'transition-colors', 'duration-200', 'text-lg');
+                button.onclick = () => selectAnswer(button, option, currentQuestion.answer);
+                optionsContainerEl.appendChild(button);
+            });
+        }
+
+        /**
+         * Handles the user's answer selection.
+         * @param {HTMLButtonElement} selectedButton - The button element that was clicked.
+         * @param {string} selectedOption - The text of the selected option.
+         * @param {string} correctAnswer - The text of the correct answer.
+         */
+        function selectAnswer(selectedButton, selectedOption, correctAnswer) {
+            // Disable all option buttons after a selection is made
+            const allOptions = optionsContainerEl.querySelectorAll('button');
+            allOptions.forEach(btn => btn.classList.add('disabled'));
+
+            // Check if the answer is correct
+            if (selectedOption === correctAnswer) {
+                score++;
+                selectedButton.classList.add('correct');
+            } else {
+                selectedButton.classList.add('incorrect');
+                // Highlight the correct answer
+                allOptions.forEach(btn => {
+                    if (btn.textContent === correctAnswer) {
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+            
+            // Show the next button
+            nextBtn.classList.remove('hidden');
+            // Update score display immediately
+            scoreEl.textContent = `اسکور: ${score}`;
+        }
+
+        /**
+         * Displays the final results of the quiz.
+         */
+        function showResults() {
+            questionArea.classList.add('hidden');
+            resultArea.classList.remove('hidden');
+            finalScoreEl.textContent = `${score} / ${quizData.length}`;
+        }
+
+        /**
+         * Resets the quiz to its initial state.
+         */
+        function restartQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            resultArea.classList.add('hidden');
+            questionArea.classList.remove('hidden');
+            shuffleQuiz();
+            loadQuestion();
+        }
+
+        // --- Event Listeners ---
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            loadQuestion();
+        });
+
+        restartBtn.addEventListener('click', restartQuiz);
+
+        // --- Initial Load ---
+        // Start the quiz when the script loads
+        shuffleQuiz();
+        loadQuestion();
+    </script>
+</body>
+</html>
