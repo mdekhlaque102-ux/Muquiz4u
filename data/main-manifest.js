@@ -3,6 +3,7 @@
 
 const quizDataBySubject = {
   "science": scienceData,   // Data from _science-manifest.js
-  "history": historyData    // Data from _history-manifest.js
+  "history": historyData,   // Data from _history-manifest.js
+  "urdu": urduData
 };
 
