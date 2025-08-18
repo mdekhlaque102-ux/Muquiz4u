@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muquiz4u - A Quiz App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div id="app-container" class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl mx-auto transition-all duration-500 p-6 md:p-8">
+
+        <!-- ===== SCREENS CONTAINER ===== -->
+
+        <!-- 1. Subject Selection Screen -->
+        <div id="subject-screen" class="screen active">
+            <h1 class="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-500 mb-6 text-center">Select a Subject</h1>
+            <div id="subject-list" class="space-y-4">
+                <!-- Subjects will be dynamically inserted here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- 2. Chapter Selection Screen -->
+        <div id="chapter-screen" class="screen">
+            <button id="back-to-subjects-btn" class="mb-4 text-indigo-400 hover:text-indigo-300">&larr; Back to Subjects</button>
+            <h1 id="chapter-list-title" class="text-3xl font-bold mb-6 text-center"></h1>
+            <div id="chapter-list" class="space-y-3">
+                <!-- Chapters will be dynamically inserted here by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- 3. Quiz Screen -->
+        <div id="quiz-screen" class="screen">
+            <div class="flex justify-between items-center mb-2 text-gray-400">
+                <span id="question-counter"></span>
+                <button id="back-to-chapters-btn" class="text-sm text-indigo-400 hover:text-indigo-300">Exit Quiz</button>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2.5 mb-6">
+                <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-600 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+            <h2 id="question-text" class="text-2xl md:text-3xl font-semibold mb-6 min-h-[100px]"></h2>
+            <div id="options-container" class="space-y-4"></div>
+        </div>
+
+        <!-- 4. Results Screen -->
+        <div id="results-screen" class="screen">
+            <h2 class="text-3xl font-bold mb-4 text-center">Chapter Complete!</h2>
+            <p id="score-text" class="text-5xl font-extrabold text-center bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-500 mb-2"></p>
+            <p id="score-percentage" class="text-gray-400 text-lg mb-6 text-center"></p>
+            <div class="flex flex-col md:flex-row gap-4">
+                <button id="restart-quiz-btn" class="w-full bg-gray-700 hover:bg-gray-600 font-bold py-3 px-6 rounded-lg text-lg transition duration-300">Restart Chapter</button>
+                <button id="back-to-chapters-from-results-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 font-bold py-3 px-6 rounded-lg text-lg transition duration-300">Choose Another Chapter</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =================================================================== -->
+    <!--                       LOADING ALL OUR DATA FILES                      -->
+    <!-- The order here is VERY important!                                   -->
+    <!-- =================================================================== -->
+    
+    <!-- 1. Load Science Chapter Files -->
+    <script src="./data/science/chapter1.js"></script>
+    <script src="./data/science/chapter2.js"></script>
+    
+    <!-- 2. Load Science Manifest (which uses the chapter files) -->
+    <script src="./data/science/_science-manifest.js"></script>
+
+    <!-- 3. Load History Chapter Files -->
+    <script src="./data/history/chapter1.js"></script>
+
+    <!-- 4. Load History Manifest -->
+    <script src="./data/history/_history-manifest.js"></script>
+
+    <!-- 5. Load the Main Manifest (which uses all subject manifests) -->
+    <script src="./data/main-manifest.js"></script>
+
+    <!-- =================================================================== -->
+    <!--                         MAIN APP JAVASCRIPT LOGIC                     -->
+    <!-- This script runs last, after all the data is loaded.                -->
+    <!-- =================================================================== -->
+    <script>
+        // --- STATE MANAGEMENT ---
+        let currentSubjectId = null;
+        let currentChapterId = null;
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        // --- DOM ELEMENTS ---
+        const screens = document.querySelectorAll('.screen');
+        const subjectList = document.getElementById('subject-list');
+        const chapterList = document.getElementById('chapter-list');
+        const chapterListTitle = document.getElementById('chapter-list-title');
+
+        // --- NAVIGATION ---
+        function showScreen(screenId) {
+            screens.forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+        
+        document.getElementById('back-to-subjects-btn').addEventListener('click', () => showScreen('subject-screen'));
+        document.getElementById('back-to-chapters-btn').addEventListener('click', () => showScreen('chapter-screen'));
+        document.getElementById('back-to-chapters-from-results-btn').addEventListener('click', () => showScreen('chapter-screen'));
+
+
+        // --- RENDERING LOGIC ---
+        function renderSubjectScreen() {
+            subjectList.innerHTML = '';
+            for (const subjectId in quizDataBySubject) {
+                const subject = quizDataBySubject[subjectId];
+                const button = document.createElement('button');
+                button.className = "w-full text-left p-4 rounded-lg border-2 border-gray-700 hover:bg-gray-700 hover:border-indigo-500 transition duration-300 text-xl font-semibold";
+                button.textContent = subject.subjectTitle;
+                button.onclick = () => {
+                    currentSubjectId = subjectId;
+                    renderChapterScreen(subjectId);
+                };
+                subjectList.appendChild(button);
+            }
+        }
+        
+        function renderChapterScreen(subjectId) {
+            const subject = quizDataBySubject[subjectId];
+            chapterListTitle.textContent = `Select a Chapter in ${subject.subjectTitle}`;
+            chapterList.innerHTML = '';
+            for (const chapterId in subject.chapters) {
+                const chapter = subject.chapters[chapterId];
+                const button = document.createElement('button');
+                button.className = "w-full text-left p-4 rounded-lg bg-gray-700 hover:bg-gray-600 transition duration-300";
+                button.textContent = chapter.title;
+                button.onclick = () => {
+                    currentChapterId = chapterId;
+                    startQuiz(subjectId, chapterId);
+                };
+                chapterList.appendChild(button);
+            }
+            showScreen('chapter-screen');
+        }
+
+        // --- QUIZ LOGIC ---
+        function startQuiz(subjectId, chapterId) {
+            currentQuestionIndex = 0;
+            score = 0;
+            loadQuestion();
+            showScreen('quiz-screen');
+        }
+
+        function loadQuestion() {
+            const questionData = quizDataBySubject[currentSubjectId].chapters[currentChapterId].questions[currentQuestionIndex];
+            const totalQuestions = quizDataBySubject[currentSubjectId].chapters[currentChapterId].questions.length;
+            
+            document.getElementById('question-counter').textContent = `Question ${currentQuestionIndex + 1} of ${totalQuestions}`;
+            document.getElementById('progress-bar').style.width = `${((currentQuestionIndex + 1) / totalQuestions) * 100}%`;
+            document.getElementById('question-text').textContent = questionData.question;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            questionData.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = "w-full text-left p-4 rounded-lg border-2 border-gray-700 hover:bg-gray-600 transition duration-300 text-lg";
+                button.textContent = option;
+                button.onclick = () => selectAnswer(option);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function selectAnswer(selectedOption) {
+            const questionData = quizDataBySubject[currentSubjectId].chapters[currentChapterId].questions[currentQuestionIndex];
+            const isCorrect = selectedOption === questionData.correctAnswer;
+            if (isCorrect) score++;
+            
+            Array.from(document.getElementById('options-container').children).forEach(btn => {
+                btn.disabled = true;
+                if (btn.textContent === questionData.correctAnswer) {
+                    btn.classList.add('bg-green-800/50', 'border-green-500');
+                } else if (btn.textContent === selectedOption) {
+                    btn.classList.add('bg-red-800/50', 'border-red-500');
+                }
+            });
+
+            setTimeout(() => {
+                currentQuestionIndex++;
+                const totalQuestions = quizDataBySubject[currentSubjectId].chapters[currentChapterId].questions.length;
+                if (currentQuestionIndex < totalQuestions) {
+                    loadQuestion();
+                } else {
+                    showResults();
+                }
+            }, 1500);
+        }
+
+        function showResults() {
+            const totalQuestions = quizDataBySubject[currentSubjectId].chapters[currentChapterId].questions.length;
+            document.getElementById('score-text').textContent = `${score} / ${totalQuestions}`;
+            document.getElementById('score-percentage').textContent = `You answered ${((score / totalQuestions) * 100).toFixed(0)}% correctly.`;
+            document.getElementById('restart-quiz-btn').onclick = () => startQuiz(currentSubjectId, currentChapterId);
+            showScreen('results-screen');
+        }
+
+        // --- APP INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSubjectScreen();
+        });
+    </script>
+</body>
+      </html>
+
