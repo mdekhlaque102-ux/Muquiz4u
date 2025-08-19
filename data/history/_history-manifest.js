@@ -2,7 +2,7 @@
 // This file combines all chapters for the History subject.
 
 const historyData = {
-  "subjectTitle": "Itihas (History)",
+  "subjectTitle": "History",
   "chapters": {
     "ch1": {
       "title": "Chapter 1: Aadhunik Bharat",
