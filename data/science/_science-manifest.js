@@ -2,7 +2,7 @@
 // Yeh file Vigyan (Science) subject ke saare chapters ko jodti hai.
 
 const scienceData = {
-  "subjectTitle": "Vigyan (Science)",
+  "subjectTitle": "Science",
   "chapters": {
     "ch1": {
       "title": "Chapter 1: Mool Sidhant",
